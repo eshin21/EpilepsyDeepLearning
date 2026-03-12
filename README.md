@@ -1,1 +1,1 @@
-# EpilepsyDeepLearning
+# EpilepsyDeepLearning - Group 3 
