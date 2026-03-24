@@ -1,0 +1,15 @@
+{
+  "data_root": "/export/hhome/ricse03/Deep_Learning_Group 3/homework_wenqi/data/epilepsy",
+  "master_index_path": "/export/hhome/ricse03/Deep_Learning_Group 3/homework_wenqi/fold1_data_intake/master_index.parquet",
+  "mismatches": [],
+  "n_neg_windows": 485233,
+  "n_patients": 24,
+  "n_pos_windows": 86672,
+  "n_rows": 571905,
+  "row_id_unique": true,
+  "signal_key": "EEG_win",
+  "signal_shape": [
+    21,
+    128
+  ]
+}
