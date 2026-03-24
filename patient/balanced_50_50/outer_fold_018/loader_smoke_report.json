@@ -1,0 +1,8 @@
+{
+  "device": "cuda",
+  "outer_fold_id": 18,
+  "protocol": "patient",
+  "train_mode": "balanced_50_50",
+  "train_rows": 148848,
+  "val_rows": 56660
+}
