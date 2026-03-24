@@ -1,0 +1,30 @@
+{
+  "artifacts": {
+    "captions_zh": "/export/hhome/ricse03/Deep_Learning_Group 3/homework_wenqi/fold7_results_and_reporting/research_visuals/research_visuals_captions_zh.md",
+    "channel_fusion_architecture": "/export/hhome/ricse03/Deep_Learning_Group 3/homework_wenqi/fold7_results_and_reporting/research_visuals/channel_fusion_architecture.png",
+    "first_layer_channel_fusion_weights": "/export/hhome/ricse03/Deep_Learning_Group 3/homework_wenqi/fold7_results_and_reporting/research_visuals/first_layer_channel_fusion_weights.png",
+    "input_heatmap_pair": "/export/hhome/ricse03/Deep_Learning_Group 3/homework_wenqi/fold7_results_and_reporting/research_visuals/input_heatmap_pair.png",
+    "notes": "/export/hhome/ricse03/Deep_Learning_Group 3/homework_wenqi/fold7_results_and_reporting/research_visuals/research_visuals_notes.md",
+    "saliency_case": "/export/hhome/ricse03/Deep_Learning_Group 3/homework_wenqi/fold7_results_and_reporting/research_visuals/saliency_case_patient_fold0.png"
+  },
+  "checkpoint_path": "/export/hhome/ricse03/Deep_Learning_Group 3/homework_wenqi/fold5_cnn_training/patient/balanced_50_50/outer_fold_000/best.pt",
+  "prediction_path": "/export/hhome/ricse03/Deep_Learning_Group 3/homework_wenqi/fold6_evaluation/patient/balanced_50_50/outer_fold_000/balanced_50_50/predictions.parquet",
+  "reference_outer_fold_id": 0,
+  "reference_protocol": "patient",
+  "reference_test_mode": "balanced_50_50",
+  "reference_train_mode": "balanced_50_50",
+  "representative_normal_case": {
+    "filename": "chb01_15.edf",
+    "global_interval": 5,
+    "patient_id": "chb01",
+    "row_id": 8739,
+    "y_score": 0.31429603695869446
+  },
+  "representative_seizure_case": {
+    "filename": "chb01_16.edf",
+    "global_interval": 4,
+    "patient_id": "chb01",
+    "row_id": 14852,
+    "y_score": 0.9131474494934082
+  }
+}

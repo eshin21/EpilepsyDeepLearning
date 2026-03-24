@@ -1,0 +1,80 @@
+{
+  "windows_per_patient": {
+    "zh_title": "图 1. 各病人的 EEG 窗口数量分布",
+    "zh_text": "描述：该图统计 24 名病人的可用 EEG 窗口数。分析：不同病人的样本量差异明显，说明数据来源并不均衡。如果只做 window-level 切分，模型很容易在高样本病人的上下文中获益，因此这一步直接支撑了 challenge 中继续做 seizure holdout 和 patient holdout 的必要性。",
+    "en_title": "Figure 1. Number of EEG windows per patient",
+    "en_text": "Description: This figure shows how many EEG windows are available for each of the 24 patients. Analysis: The sample volume is highly uneven across subjects. This is one reason why pure window-level validation can look optimistic, and why the challenge design also requires seizure-level and patient-level holdout protocols."
+  },
+  "seizures_per_patient": {
+    "zh_title": "图 2. 各病人的 seizure 事件数量",
+    "zh_text": "描述：该图给出每位病人对应的 seizure 事件数。分析：病人之间的事件数量差异同样很大，这意味着“同一病人内泛化”和“跨病人泛化”的难度并不一样。对于 challenge 而言，seizure holdout 更接近已知病人的未知发作事件，而 patient holdout 更接近真正的群体泛化。",
+    "en_title": "Figure 2. Number of seizure events per patient",
+    "en_text": "Description: This figure summarizes how many seizure events are available for each patient. Analysis: Event availability also varies substantially across subjects, which means within-patient generalization and cross-patient generalization are not the same problem. This directly matches the challenge distinction between seizure-event holdout and patient holdout."
+  },
+  "interval_length_distribution": {
+    "zh_title": "图 3. 每个事件中正类窗口数量的分布",
+    "zh_text": "描述：该图统计每个事件能产生多少个正类窗口。分析：事件长度并不一致，说明固定长度窗口分类器需要面对短事件和长事件的共同建模问题。这也解释了为什么在 seizure holdout 下，不同 outer folds 的难度会出现明显波动。",
+    "en_title": "Figure 3. Distribution of positive-window counts per seizure event",
+    "en_text": "Description: This histogram shows how many positive windows are produced by each seizure event. Analysis: Event duration is heterogeneous, so the same single-window classifier must handle both short and long seizure episodes. This helps explain the fold-to-fold variability observed under seizure-event holdout."
+  },
+  "sample_windows": {
+    "zh_title": "图 4. 代表性 normal / seizure 窗口样例",
+    "zh_text": "描述：左图是一个正常窗口，右图是一个发作窗口；每个输入都是 21 个通道乘 128 个时间采样点。分析：这张图把 challenge 的 baseline 任务可视化了，也就是 single-window EEG classification。模型看到的不是单通道信号，而是完整的多通道矩阵，因此后续的 CNN 本质上是在做 channel fusion。",
+    "en_title": "Figure 4. Representative normal and seizure EEG windows",
+    "en_text": "Description: The left panel shows a normal window and the right panel shows a seizure window. Each input is a 21-by-128 multichannel EEG segment. Analysis: This makes the baseline challenge setup concrete: a single-window EEG classifier operating on the full multichannel matrix, not on isolated single-channel traces."
+  },
+  "sample_learning_curve": {
+    "zh_title": "图 5. 代表性训练 fold 的学习曲线",
+    "zh_text": "描述：该图展示一个代表性 outer fold 的训练损失和验证 AUC 变化。分析：训练损失下降而验证 AUC 上升并趋于稳定，说明当前 CNN baseline 是可训练且可收敛的。它不是最终结论图，而是工程可靠性的证据，说明后面的 protocol 对比建立在一个正常收敛的训练过程之上。",
+    "en_title": "Figure 5. Learning curve from a representative training fold",
+    "en_text": "Description: This figure shows the training loss and validation AUC trajectory for one representative outer fold. Analysis: The loss decreases while the validation AUC rises and stabilizes, indicating that the CNN baseline is trainable and converges reasonably. This is mainly an engineering sanity-check figure rather than a final scientific comparison figure."
+  },
+  "input_heatmap_pair": {
+    "zh_title": "图 6. 单窗口 EEG 输入热力图对比",
+    "zh_text": "描述：该图对比了一个代表性的非发作窗口和一个代表性的发作窗口。分析：它直观说明了模型的输入单位就是单个 EEG 窗口，这与 challenge 的 static baseline 完全一致。结合 patient / seizure / window 三种 protocol，这张图提醒我们：切分方式变的是泛化难度，不是输入定义本身。",
+    "en_title": "Figure 6. Heatmap comparison of two single-window EEG inputs",
+    "en_text": "Description: This figure compares one representative non-seizure window with one representative seizure window. Analysis: It makes the model input explicit and aligns with the challenge's static single-window baseline. Across the three protocols, the input definition stays the same while the generalization difficulty changes."
+  },
+  "channel_fusion_architecture": {
+    "zh_title": "图 7. Channel Fusion CNN 基线结构示意图",
+    "zh_text": "描述：该图概括了当前实现的 CNN baseline，从多通道输入到卷积块再到二分类输出。分析：第一层 Conv1d 直接以 21 个 EEG 通道作为输入，因此这里实现的是 input-level channel fusion。这与 challenge 中的 channel fusion baseline 对齐，同时也明确表明：当前版本还没有引入 temporal LSTM 分支。",
+    "en_title": "Figure 7. Channel-fusion CNN baseline architecture",
+    "en_text": "Description: This diagram summarizes the implemented CNN baseline from multichannel input to binary output. Analysis: Because the first Conv1d layer directly consumes all 21 EEG channels, the model already performs input-level channel fusion. This matches the challenge baseline and also clarifies that the temporal LSTM branch is not part of the current V1 implementation."
+  },
+  "first_layer_channel_fusion_weights": {
+    "zh_title": "图 8. 第一层卷积核的通道融合权重热图",
+    "zh_text": "描述：热图展示第一层卷积核在不同 EEG 通道上的平均权重强度，右侧给出通道重要性排序。分析：不同卷积核对不同通道的依赖并不相同，这说明模型并不是机械地平均所有通道，而是在学习跨通道的差异化组合。这为“已经做了 channel fusion”提供了全局层面的结构证据。",
+    "en_title": "Figure 8. Channel-fusion weight map of the first convolutional layer",
+    "en_text": "Description: The heatmap summarizes how strongly the first convolutional layer uses each EEG channel, and the side plot ranks channels by average importance. Analysis: The filters do not treat all channels equally, which suggests that the model is learning structured cross-channel combinations rather than a trivial uniform average. This provides global evidence that channel fusion is actually happening."
+  },
+  "saliency_case_patient_fold0": {
+    "zh_title": "图 9. 代表性发作样本的 Saliency 可解释性结果",
+    "zh_text": "描述：上方为原始发作窗口，下方为对应的梯度显著性图，右侧给出该样本最重要的通道。分析：模型的关注并不是均匀分布在全部时间点和通道上，而是集中在少数高信息区域。这说明当前 CNN 在局部判别时具有一定可解释性，但也应强调它提供的是模型证据，不等同于临床因果解释。",
+    "en_title": "Figure 9. Saliency-based explanation for a representative seizure case",
+    "en_text": "Description: The upper panel shows the raw seizure window, the lower panel shows the gradient-based saliency map, and the side bar chart ranks the most salient channels for this case. Analysis: The model focuses on specific channels and time segments rather than distributing attention uniformly. This gives local interpretability evidence, although it should still be interpreted as model evidence rather than a direct clinical causal explanation."
+  },
+  "f1_by_protocol": {
+    "zh_title": "图 10. 不同 protocol 与采样设置下的平均 F1",
+    "zh_text": "描述：该图汇总了 window、seizure、patient 三种 protocol 在不同 train/test 采样设置下的平均 F1。分析：整体趋势是 window 最高、seizure 居中、patient 最低，这与 challenge 预期完全一致：window holdout 是上界，seizure holdout 是个体内未知事件，patient holdout 则是最严格的跨病人泛化。与此同时，unbalanced test 往往会拉低 F1，更能暴露 false positive 带来的代价。",
+    "en_title": "Figure 10. Mean F1 across protocols and sampling settings",
+    "en_text": "Description: This bar chart compares mean F1 under the window, seizure, and patient protocols for all train/test sampling combinations. Analysis: The ordering is consistent with the challenge narrative: window holdout gives the upper bound, seizure holdout is a personalized unseen-event setting, and patient holdout is the hardest population-level setting. The unbalanced test condition typically lowers F1 because it exposes the cost of false positives more realistically."
+  },
+  "auc_by_protocol": {
+    "zh_title": "图 11. 不同 protocol 与采样设置下的平均 ROC-AUC",
+    "zh_text": "描述：该图展示与图 10 相同实验矩阵下的平均 ROC-AUC。分析：AUC 的整体排序与 F1 一致，但数值通常更稳定，说明模型在更难协议下仍保留一定排序能力。尤其是在 seizure 和 patient 设置中，AUC 仍然可观，而 F1 明显下降，这提示实际应用时阈值选择和类分布对最终行为非常关键。",
+    "en_title": "Figure 11. Mean ROC-AUC across protocols and sampling settings",
+    "en_text": "Description: This figure reports the mean ROC-AUC for the same protocol and sampling matrix as Figure 10. Analysis: The ranking pattern is similar to F1, but AUC is more stable. This suggests that the model still preserves useful ranking ability under harder protocols, even when the thresholded F1 score drops. In practice, this means class imbalance and threshold selection remain critical for deployment-oriented interpretation."
+  },
+  "confusion_matrices_balanced": {
+    "zh_title": "图 12. Balanced test 条件下按 protocol 聚合的混淆矩阵",
+    "zh_text": "描述：该图在 balanced 50/50 测试条件下，对每个 protocol 选择其最佳 train setting，并将全部 outer folds 的混淆矩阵聚合后展示。每个格子同时给出总计数与按行归一化比例。分析：window 的对角项最强，说明在共享病人与事件上下文时模型最容易达到高召回与高特异性；seizure 次之，patient 最难，主要表现为正类召回下降。这与 challenge 中 window > seizure > patient 的泛化难度排序一致。",
+    "en_title": "Figure 12. Protocol-wise aggregated confusion matrices on balanced test sets",
+    "en_text": "Description: Under balanced 50/50 testing, this figure selects the best train setting for each protocol and aggregates the confusion matrices across all outer folds. Each cell reports both the total count and the row-normalized proportion. Analysis: Window holdout has the strongest diagonal, indicating the easiest generalization setting; seizure holdout is intermediate; patient holdout is hardest and mainly loses performance through reduced positive recall. This matches the intended challenge hierarchy of window > seizure > patient."
+  },
+  "confusion_matrices_unbalanced": {
+    "zh_title": "图 13. Unbalanced test 条件下按 protocol 聚合的混淆矩阵",
+    "zh_text": "描述：该图在 unbalanced 20/80 测试条件下，以同样方式汇总三种 protocol 的聚合混淆矩阵。分析：在更接近真实类分布的测试中，负类样本占主导，因此高特异性更容易体现在大量 true negatives 上；但正类召回与 false positives 的权衡也更关键。对于 seizure 和 patient protocol，这张图比 balanced 测试更能反映部署场景下的误报风险与可信度。",
+    "en_title": "Figure 13. Protocol-wise aggregated confusion matrices on unbalanced test sets",
+    "en_text": "Description: This figure summarizes the same protocol-wise aggregate confusion matrices under unbalanced 20/80 testing. Analysis: Because the negative class dominates, high specificity becomes visually tied to a large true-negative block, while the recall-versus-false-positive trade-off becomes more deployment-relevant. For seizure and patient holdout especially, this view better exposes trustworthiness under realistic class ratios."
+  }
+}
