@@ -6672,58 +6672,21 @@ show_preview(ROOT / 'fold7_results_and_reporting' / 'report_ready_notes.md')
 - `window` / `balanced_50_50` / `balanced_50_50` achieved mean F1 `0.9248` and mean AUC `0.9875`.
 - `window` / `unbalanced_20_80` / `unbalanced_20_80` achieved mean F1 `0.9220` and mean AUC `0.9913`.
 
-## Fold 8: Future Model Slot
+## Final
+To further improve the discriminative capacity of the model, we extend the original CNN-based architecture with an LSTM-based temporal aggregation module. In this setting, the CNN is first employed as a local feature extractor to encode discriminative patterns from individual windows or signal segments. The resulting feature sequence is then fed into the LSTM module, which models the temporal dependencies and contextual transitions across consecutive segments. In this way, the model is able to move beyond isolated window-level predictions and construct a more coherent global representation of the underlying seizure-related dynamics.
 
-**Goal**
-- Reserve a clean extension point for a second model without changing the data split or evaluation contracts.
+Compared with the CNN-only baseline, the proposed CNN-LSTM framework combines the strength of convolutional networks in local pattern extraction with the ability of recurrent models to capture long-range temporal dependencies. The CNN learns what discriminative patterns are present within each segment, while the LSTM learns how these segment-level representations evolve and interact over time. This hierarchical modelling strategy allows the model to integrate local and global information more effectively, thereby reducing the fragmentation caused by independent window-level classification.
 
-**Human Takeaway**
-- V1 stays disciplined: one CNN baseline, one experiment matrix, one reporting pipeline.
+The experimental results show that the CNN-LSTM model achieves consistent improvements across window-level, seizure-level, and patient-level evaluation protocols. In particular, under the balanced 50/50 test setting, the LSTM-based model obtains the strongest performance in terms of accuracy, recall, F1-score, and ROC-AUC. The confusion matrices further indicate that the proposed model maintains high specificity while substantially improving sensitivity, especially at the seizure and patient levels. These results suggest that temporal feature aggregation is crucial for capturing the sequential structure of seizure-related patterns and for improving the robustness of higher-level clinical decision-making.
 
-```python
-show_preview(ROOT / 'fold8_future_slot' / 'model_io_contract.md')
-show_preview(ROOT / 'fold8_future_slot' / 'future_model_readme.md')
-```
+Overall, the results demonstrate that treating signal segments as independent instances is insufficient for robust seizure detection. By integrating CNN-based local representation learning with LSTM-based temporal modelling, the proposed framework provides a more expressive and context-aware representation, leading to improved generalization across different evaluation granularities.
 
-# Model IO Contract
+Eg1.
+In the final experimental setting, we adopt the unbalanced 20/80 split for training and the balanced 50/50 split for testing. This design reflects a trade-off between distributional realism and evaluation fairness. During training, the unbalanced setting better resembles the natural distribution of seizure detection tasks, where non-seizure samples are typically more frequent than seizure-related samples. Preserving this imbalance allows the model to learn from a more realistic class prior and to capture the diversity of majority-class patterns.
 
-- Future models must reuse the existing `master_index.parquet` and split artifacts from `fold3_split_protocols`.
-- Future training runs must preserve the directory convention:
-  - `fold5_cnn_training/<protocol>/<train_mode>/outer_fold_XXX/`
-  - `fold6_evaluation/<protocol>/<train_mode>/outer_fold_XXX/<test_mode>/`
-- Future models must emit the same public artifact names:
-  - `best.pt`
-  - `train_log.csv`
-  - `learning_curve.png`
-  - `predictions.parquet`
-  - `metrics.json`
-  - `confusion_matrix.csv`
-  - `roc_curve.csv`
-  - `pr_curve.csv`
-- Prediction files must keep the same schema:
-  - `row_id, protocol, outer_fold_id, train_mode, test_mode, y_true, y_score, y_pred, threshold, checkpoint_path`
-- Metrics files must keep the same keys:
-  - `accuracy, precision, recall, specificity, f1, roc_auc, tn, fp, fn, tp, n_rows`
+In contrast, the balanced 50/50 test setting is used to provide a fair and controlled evaluation of the model's discriminative ability. Under an imbalanced test distribution, metrics such as accuracy can be dominated by the majority class and may overestimate model performance. A balanced test set reduces this bias and allows sensitivity, specificity, F1-score, and ROC-AUC to more directly reflect the model's ability to distinguish between seizure and non-seizure classes.
 
-# Future Model Slot
+Empirically, the unbalanced-training and balanced-testing configuration achieves the best or near-best overall performance across the window-level, seizure-level, and patient-level protocols, especially when combined with the CNN-LSTM architecture. This suggests that the model benefits from learning under a realistic data distribution while being evaluated under a class-balanced and more discriminative test condition. Therefore, this setting is selected as the final configuration, as it provides a more reliable assessment of the model's robustness and generalization capability.
 
-This directory is the reserved landing zone for the second model family.
 
-## Not in scope for V1
-
-- LSTM temporal model
-- Spiking transformer variant
-- Classic SVM baseline
-
-## What to reuse later
-
-- `helpers/data_io.py`
-- `helpers/splits.py`
-- `helpers/eval.py`
-- The report notebook `main_pipeline.ipynb`
-- The tmux launch pattern in `scripts/launch_tmux_matrix.sh`
-
-## Expected next step
-
-Add a second training helper or model head while preserving the existing split and evaluation contracts.
-
+Eg2.
