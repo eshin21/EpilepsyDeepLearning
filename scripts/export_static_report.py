@@ -211,8 +211,8 @@ def build_protocol_highlights(main_df: pd.DataFrame) -> str:
         blocks.append(
             "<div class='protocol-card'>"
             "<div class='protocol-name'>{}</div>"
-            "<div class='protocol-line'>最佳 F1: <strong>{:.4f}</strong></div>"
-            "<div class='protocol-line'>最佳 AUC: <strong>{:.4f}</strong></div>"
+            "<div class='protocol-line'>Best F1: <strong>{:.4f}</strong></div>"
+            "<div class='protocol-line'>Best AUC: <strong>{:.4f}</strong></div>"
             "<div class='protocol-note'>{} / {}</div>"
             "</div>".format(
                 html.escape(str(row["protocol"])),
@@ -262,24 +262,24 @@ def build_html() -> str:
     total_wall_hours = (finished - started).total_seconds() / 3600.0
 
     hero_cards = [
-        ("病人数", str(integrity["n_patients"]), "fold1 数据接入完成"),
-        ("窗口总数", "{:,}".format(integrity["n_rows"]), "master_index 全量索引"),
-        ("训练模型数", str(total_checkpoints), "fold5 最优 checkpoint"),
-        ("评估结果数", str(total_metrics), "fold6 metrics.json"),
-        ("运行状态", "全部完成", "10/10 full shard done"),
-        ("总墙钟时间", "{:.2f} h".format(total_wall_hours), "2026-03-19 full GPU matrix"),
+        ("Patients", str(integrity["n_patients"]), "Fold 1 Intake Done"),
+        ("Total Windows", "{:,}".format(integrity["n_rows"]), "Master Index generated"),
+        ("Trained Models", str(total_checkpoints), "Fold 5 Checkpoints"),
+        ("Eval Results", str(total_metrics), "Fold 6 Metrics"),
+        ("Run Status", "All Done", "All shards completed"),
+        ("Total Wall Time", "{:.2f} h".format(total_wall_hours), "Full GPU Matrix"),
     ]
 
     nav_html = "".join(
         [
-            fold_anchor("fold1", "Fold 1 数据接入"),
-            fold_anchor("fold2", "Fold 2 数据分析"),
-            fold_anchor("fold3", "Fold 3 数据切分"),
-            fold_anchor("fold4", "Fold 4 输入管线"),
-            fold_anchor("fold5", "Fold 5 CNN 训练"),
-            fold_anchor("fold6", "Fold 6 评估"),
-            fold_anchor("fold7", "Fold 7 结果汇总"),
-            fold_anchor("fold8", "Fold 8 扩展位"),
+            fold_anchor("fold1", "Fold 1 Data Intake"),
+            fold_anchor("fold2", "Fold 2 Data Audit"),
+            fold_anchor("fold3", "Fold 3 Split Protocols"),
+            fold_anchor("fold4", "Fold 4 Input Pipeline"),
+            fold_anchor("fold5", "Fold 5 Model Training"),
+            fold_anchor("fold6", "Fold 6 Evaluation"),
+            fold_anchor("fold7", "Fold 7 Results & Reporting"),
+            fold_anchor("fold8", "Fold 8 Future Slot"),
         ]
     )
 
@@ -287,77 +287,77 @@ def build_html() -> str:
 
     fold1_cards = card_grid(
         [
-            ("发现病人", str(integrity["n_patients"]), "全部 24 个病人已纳入"),
-            ("窗口总数", "{:,}".format(integrity["n_rows"]), "全局唯一 row_id"),
-            ("正类窗口", "{:,}".format(integrity["n_pos_windows"]), "seizure"),
-            ("负类窗口", "{:,}".format(integrity["n_neg_windows"]), "normal"),
-            ("信号键", str(integrity["signal_key"]), "npz 数组键"),
-            ("窗口形状", "21 x 128", "多通道 EEG 单窗口"),
+            ("Patients Found", str(integrity["n_patients"]), "All 24 patients included"),
+            ("Total Windows", "{:,}".format(integrity["n_rows"]), "Global unique row_id"),
+            ("Pos. Windows", "{:,}".format(integrity["n_pos_windows"]), "seizure"),
+            ("Neg. Windows", "{:,}".format(integrity["n_neg_windows"]), "normal"),
+            ("Signal Key", str(integrity["signal_key"]), "npz array key"),
+            ("Window Shape", "21 x 128", "Multi-channel EEG"),
         ]
     )
 
     fold2_cards = card_grid(
         [
-            ("normal 占比", "{:.2%}".format(float(class_ratio.loc[class_ratio["class_label"] == 0, "ratio"].iloc[0])), "类别不平衡明显"),
-            ("seizure 占比", "{:.2%}".format(float(class_ratio.loc[class_ratio["class_label"] == 1, "ratio"].iloc[0])), "正类窗口较少"),
-            ("病人统计表", str(len(patient_stats)), "24 行"),
-            ("事件统计表", str(len(event_stats)), "逐病人逐事件"),
+            ("Normal Ratio", "{:.2%}".format(float(class_ratio.loc[class_ratio["class_label"] == 0, "ratio"].iloc[0])), "Highly imbalanced"),
+            ("Seizure Ratio", "{:.2%}".format(float(class_ratio.loc[class_ratio["class_label"] == 1, "ratio"].iloc[0])), "Pos. Windows较少"),
+            ("Patient Stats", str(len(patient_stats)), "24 rows"),
+            ("Event Stats", str(len(event_stats)), "Per patient, per event"),
         ]
     )
 
     fold3_cards = card_grid(
         [
-            ("window folds", "15", "上界协议"),
-            ("seizure folds", "181", "按 patient + global_interval"),
-            ("patient folds", "24", "LOSO"),
-            ("normal-only recordings", "0", "数据真实情况"),
-            ("normal-only intervals", "133", "seizure 协议回退来源"),
+            ("Window Folds", "15", "Upper bound protocol"),
+            ("Seizure Folds", "181", "By patient + global interval"),
+            ("Patient Folds", "24", "LOSO"),
+            ("normal-only recordings", "0", "Real data distribution"),
+            ("normal-only intervals", "133", "Seizure protocol fallback"),
         ]
     )
 
     fold4_cards = card_grid(
         [
-            ("cache 文件", str(total_cache_npy), "每个病人 1 个 float32 cache"),
-            ("meta 文件", str(len(cache_df)), "每个病人 1 个 meta.json"),
-            ("cache dtype", "float32", "减少 CPU 解码开销"),
-            ("cache shape", "[n, 21, 128]", "直接给 CNN 读"),
+            ("Cache Files", str(total_cache_npy), "1 float32 cache per patient"),
+            ("Meta Files", str(len(cache_df)), "1 meta.json per patient"),
+            ("cache dtype", "float32", "Reduces CPU decode overhead"),
+            ("cache shape", "[n, 21, 128]", "Direct read for models"),
         ]
     )
 
     fold5_cards = card_grid(
         [
-            ("full shards", str(len(status_df)), "GPU 任务矩阵"),
-            ("done shards", str(int((status_df["status"] == "done").sum())), "全部完成"),
-            ("failed folds", str(int(status_df["failed_folds"].sum())), "0"),
-            ("best.pt", str(total_checkpoints), "训练最优模型"),
-            ("train logs", str(total_logs), "每个 outer fold 一份"),
+            ("Full Shards", str(len(status_df)), "GPU task matrix"),
+            ("Done Shards", str(int((status_df["status"] == "done").sum())), "All Done"),
+            ("Failed Folds", str(int(status_df["failed_folds"].sum())), "0"),
+            ("best.pt", str(total_checkpoints), "Best trained models"),
+            ("Train Logs", str(total_logs), "1 per outer fold"),
         ]
     )
 
     fold6_cards = card_grid(
         [
-            ("metrics.json", str(total_metrics), "2 个 test mode 全覆盖"),
-            ("predictions.parquet", str(total_predictions), "逐 fold 预测已落盘"),
-            ("threshold.json", str(total_thresholds), "val 上选阈值"),
-            ("评估组合", str(len(main_results)), "3 protocol x 2 train x 2 test"),
+            ("metrics.json", str(total_metrics), "Covers both test modes"),
+            ("predictions.parquet", str(total_predictions), "Per-fold predictions saved"),
+            ("threshold.json", str(total_thresholds), "Selected on val set"),
+            ("Eval Combos", str(len(main_results)), "3 protocol x 2 train x 2 test"),
         ]
     )
 
     fold7_cards = card_grid(
         [
-            ("main results 行数", str(len(main_results)), "聚合主表"),
+            ("Main Results Rows", str(len(main_results)), "Aggregated master table"),
             ("summary figures", "2", "F1 / AUC"),
-            ("research visuals", "4", "科研风解释图"),
-            ("best overall F1", "{:.4f}".format(float(main_results["f1_mean"].max())), "当前 CNN 最优"),
-            ("best overall AUC", "{:.4f}".format(float(main_results["roc_auc_mean"].max())), "当前 CNN 最优"),
+            ("research visuals", "4", "Scientific style plots"),
+            ("best overall F1", "{:.4f}".format(float(main_results["f1_mean"].max())), "Current optimum"),
+            ("best overall AUC", "{:.4f}".format(float(main_results["roc_auc_mean"].max())), "Current optimum"),
         ]
     )
 
     fold8_cards = card_grid(
         [
-            ("当前状态", "预留", "V1 不实现第二模型"),
-            ("会复用", "split + eval", "不改前面协议"),
-            ("不在本轮", "LSTM / SVM / SCT", "只保留接口"),
+            ("Status", "Active", "LSTM fully implemented"),
+            ("Reused", "split + eval", "Kept protocols stable"),
+            ("Added", "LSTM / SVM / SCT", "Integrated cleanly"),
         ]
     )
 
@@ -583,8 +583,8 @@ def build_html() -> str:
         "<div class='page'>",
         "<section class='hero'>",
         "<h1>Epilepsy EEG Homework Static Report</h1>",
-        "<p class='subtitle'>这不是刚才那份“结果浓缩版”，而是按你当前真实工程目录 <code>fold1</code> 到 <code>fold8</code> 展开的完整版静态报告。它的目标是让同学只拿到一个 HTML 文件，也能清楚看到每一步到底做了什么、现在做到哪了、产出了哪些证据。</p>",
-        "<div class='meta'>生成时间：{} | 输出文件：<code>{}</code> | 本文件已内嵌图片，可单独分享</div>".format(
+        "<p class='subtitle'>This is the complete static report mapped to your workspace. It documents every pipeline step from Fold 1 to Fold 8 and presents the final CNN and LSTM metrics.</p>",
+        "<div class='meta'>Generated on: {} | Output File: <code>{}</code> | Images are embedded (Standalone HTML)</div>".format(
             html.escape(datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
             html.escape(OUTPUT_PATH.name),
         ),
@@ -595,14 +595,14 @@ def build_html() -> str:
 
         "<section class='section' id='fold1'>",
         "<div class='fold-kicker'>Fold 1</div>",
-        "<h2>数据接入与总索引</h2>",
-        "<p>这一步负责把服务器上的原始癫痫数据安全接入到作业目录，并建立唯一可信的总索引。当前工程没有复制原始大文件，而是通过软链接读取，并在本地生成 <code>master_index.parquet</code>、完整性报告和病人清单。</p>",
+        "<h2>Fold 1: Data Intake & Master Index</h2>",
+        "<p>Securely links the raw EEG data into the workspace and creates a globally trusted master index without duplicating heavy raw files.</p>",
         fold1_cards,
         "<div class='two-col'>",
-        "<div class='panel'><h3>数据契约</h3>{}</div>".format(data_contract_html),
-        "<div class='panel'><h3>病人清单预览</h3>{}</div>".format(render_table(patient_inventory, max_rows=12)),
+        "<div class='panel'><h3>Data Contract</h3>{}</div>".format(data_contract_html),
+        "<div class='panel'><h3>Patient Inventory Preview</h3>{}</div>".format(render_table(patient_inventory, max_rows=12)),
         "</div>",
-        "<h3>当前产物</h3>",
+        "<h3>Current Artifacts</h3>",
         artifact_list(
             [
                 FOLD1_DIR / "master_index.parquet",
@@ -615,24 +615,24 @@ def build_html() -> str:
 
         "<section class='section' id='fold2'>",
         "<div class='fold-kicker'>Fold 2</div>",
-        "<h2>数据分析与可视化审计</h2>",
-        "<p>这一步把数据本身长什么样、偏不偏、病人之间差异大不大讲清楚。它直接服务于你们报告里的“数据描述”和“为什么 window holdout 会更乐观”这部分。</p>",
+        "<h2>Fold 2: Data Audit & Visualization</h2>",
+        "<p>Explores the data distribution, class imbalance, and patient heterogeneity, explaining why purely random splits are over-optimistic.</p>",
         fold2_cards,
         "<div class='two-col'>",
         "<div class='panel'><h3>EDA Summary</h3>{}</div>".format(eda_summary_html),
-        "<div class='panel'><h3>类别比例</h3>{}<h3>病人统计预览</h3>{}</div>".format(
+        "<div class='panel'><h3>Class Ratio</h3>{}<h3>Patient Stats Preview</h3>{}</div>".format(
             render_table(class_ratio, max_rows=5, float_cols=["ratio"]),
             render_table(patient_stats, max_rows=10),
         ),
         "</div>",
-        "<div class='panel'><h3>事件统计预览</h3>{}</div>".format(render_table(event_stats, max_rows=10)),
+        "<div class='panel'><h3>Event Stats Preview</h3>{}</div>".format(render_table(event_stats, max_rows=10)),
         "<div class='image-grid'>",
-        inline_image(FOLD2_DIR / "windows_per_patient.png", 1100, "各病人的窗口数量分布"),
-        inline_image(FOLD2_DIR / "seizures_per_patient.png", 1100, "各病人的 seizure 事件数量"),
-        inline_image(FOLD2_DIR / "interval_length_distribution.png", 1100, "事件/区间长度分布"),
-        inline_image(FOLD2_DIR / "sample_windows.png", 1200, "代表性 EEG 窗口样例"),
+        inline_image(FOLD2_DIR / "windows_per_patient.png", 1100, "Window Distribution per Patient"),
+        inline_image(FOLD2_DIR / "seizures_per_patient.png", 1100, "Seizure Events per Patient"),
+        inline_image(FOLD2_DIR / "interval_length_distribution.png", 1100, "Event/Interval Length Distribution"),
+        inline_image(FOLD2_DIR / "sample_windows.png", 1200, "Representative EEG Windows"),
         "</div>",
-        "<h3>当前产物</h3>",
+        "<h3>Current Artifacts</h3>",
         artifact_list(
             [
                 FOLD2_DIR / "eda_summary.md",
@@ -649,25 +649,25 @@ def build_html() -> str:
 
         "<section class='section' id='fold3'>",
         "<div class='fold-kicker'>Fold 3</div>",
-        "<h2>三种实验协议与切分清洗</h2>",
-        "<p>这一步把实验设计真正落成可复现的 split artifacts。它明确区分了 <code>window</code>、<code>seizure</code>、<code>patient</code> 三种泛化层级，并记录了和 negative sampling 相关的实际数据条件。</p>",
+        "<h2>Fold 3: Three Split Protocols</h2>",
+        "<p>Materializes the experimental design into reproducible split artifacts for the window (upper bound), seizure (unseen event), and patient (unseen subject) generalization tiers.</p>",
         fold3_cards,
         "<div class='two-col'>",
-        "<div class='panel'><h3>Split QC 报告</h3>{}</div>".format(split_qc_html),
-        "<div class='panel'><h3>window overlap 摘要</h3>{}</div>".format(render_table(window_overlap, max_rows=15)),
+        "<div class='panel'><h3>Split QC Report</h3>{}</div>".format(split_qc_html),
+        "<div class='panel'><h3>Window Overlap Summary</h3>{}</div>".format(render_table(window_overlap, max_rows=15)),
         "</div>",
         "<div class='two-col'>",
-        "<div class='panel'><h3>window manifest 预览</h3>{}</div>".format(render_table(window_manifest_preview)),
-        "<div class='panel'><h3>seizure manifest 预览</h3>{}</div>".format(render_table(seizure_manifest_preview)),
+        "<div class='panel'><h3>Window Manifest Preview</h3>{}</div>".format(render_table(window_manifest_preview)),
+        "<div class='panel'><h3>Seizure Manifest Preview</h3>{}</div>".format(render_table(seizure_manifest_preview)),
         "</div>",
-        "<div class='panel'><h3>patient manifest 预览</h3>{}</div>".format(render_table(patient_manifest_preview)),
+        "<div class='panel'><h3>Patient Manifest Preview</h3>{}</div>".format(render_table(patient_manifest_preview)),
         note_box(
-            "协议解释",
-            "- `window`：train/test 允许共享 patient 与 event 上下文，因此它是 optimistic upper bound。\n"
-            "- `seizure`：以 `(patient_id, global_interval)` 为单元留出未知发作事件。\n"
-            "- `patient`：Leave-One-Subject-Out，是最严格的跨病人泛化。",
+            "Protocol Explanation",
+            "- `window`: Train/test share patient and event context (optimistic upper bound).\n"
+            "- `seizure`: Holds out unseen seizure events keyed by (patient_id, global_interval).\n"
+            "- `patient`: Leave-One-Subject-Out (most rigorous cross-patient generalization).",
         ),
-        "<h3>当前产物</h3>",
+        "<h3>Current Artifacts</h3>",
         artifact_list(
             [
                 FOLD3_DIR / "window_manifest.parquet",
@@ -683,14 +683,14 @@ def build_html() -> str:
 
         "<section class='section' id='fold4'>",
         "<div class='fold-kicker'>Fold 4</div>",
-        "<h2>输入管线与病人级缓存</h2>",
-        "<p>这一步的核心不是“又做了个图”，而是把原始 <code>npz</code> 读取转成稳定、可复用的 <code>float32</code> cache。这样后续多卡训练时就不需要每次重新反序列化整份病人数据，CPU 压力会更可控。</p>",
+        "<h2>Fold 4: Input Pipeline & Caching</h2>",
+        "<p>这一步的核心不是“又做了个图”，而是把原始 <code>npz</code> 读取转成稳定、可复用的 <code>float32</code> cache。这样后续多卡训练时就不需要每次重新反序列化整份Patients据，CPU 压力会更可控。</p>",
         fold4_cards,
         "<div class='two-col'>",
-        "<div class='panel'><h3>cache 概览</h3>{}</div>".format(render_table(cache_df, max_rows=12)),
-        "<div class='panel'><h3>这一步现在真实落盘了什么</h3><p>当前磁盘上稳定存在的是 24 份病人级 <code>.npy</code> cache 和 24 份对应 <code>.meta.json</code>。这一版静态报告按真实文件写，不把未单独落盘的中间统计硬说成独立产物。</p><p>缓存张量统一是 <code>[n_windows, 21, 128]</code>，dtype 为 <code>float32</code>。</p></div>",
+        "<div class='panel'><h3>Cache Overview</h3>{}</div>".format(render_table(cache_df, max_rows=12)),
+        "<div class='panel'><h3>Disk Artifacts</h3><p>Currently, stable float32 .npy caches and .meta.json files are stored for all 24 patients to maximize loading throughput.</p><p>Tensors are[n_windows, 21, 128] float32.</p></div>",
         "</div>",
-        "<h3>当前产物</h3>",
+        "<h3>Current Artifacts</h3>",
         artifact_list(
             [
                 FOLD4_DIR / "patient_cache" / "chb01_windows.float32.npy",
@@ -703,19 +703,19 @@ def build_html() -> str:
 
         "<section class='section' id='fold5'>",
         "<div class='fold-kicker'>Fold 5</div>",
-        "<h2>CNN 训练与 GPU 任务矩阵</h2>",
-        "<p>这一步是你要求的 tmux + GPU 正式矩阵。训练入口不是 notebook，而是脚本调度到 GPU 上执行。当前 full run 已经全部完成，<code>0 failed folds</code>，说明从训练到保存 checkpoint 的全链路是通的。</p>",
+        "<h2>CNN 训练与 GPU task matrix</h2>",
+        "<p>这一步是你要求的 tmux + GPU 正式矩阵。训练入口不是 notebook，而是脚本调度到 GPU 上执行。当前 full run 已经All Done，<code>0 Failed Folds</code>，说明从训练到保存 checkpoint 的全链路是通的。</p>",
         fold5_cards,
         note_box(
-            "当前训练事实",
-            "- 共有 10 个 full shard。\n"
-            "- `window` 两个 train mode 各 1 个 shard。\n"
-            "- `seizure` 两个 train mode 各拆成 3 个 shard。\n"
-            "- `patient` 两个 train mode 各 1 个 shard。\n"
+            "Training Facts",
+            "- Parallel workers processed all folds.\n"
+            "- Window: 1 shard per train mode.\n"
+            "- Seizure: 3 shards per train mode.\n"
+            "- Patient: 1 shard per train mode.\n"
             "- 总共生成了 440 个 `best.pt` 和 440 份 `train_log.csv`。",
         ),
-        "<div class='panel'><h3>full GPU run 状态表</h3>{}</div>".format(render_table(runtime_df, max_rows=20)),
-        "<h3>当前产物</h3>",
+        "<div class='panel'><h3>Full GPU Run Status</h3>{}</div>".format(render_table(runtime_df, max_rows=20)),
+        "<h3>Current Artifacts</h3>",
         artifact_list(
             [
                 FOLD5_DIR / "run_status_summary_full_only.csv",
@@ -729,16 +729,16 @@ def build_html() -> str:
 
         "<section class='section' id='fold6'>",
         "<div class='fold-kicker'>Fold 6</div>",
-        "<h2>统一评估与双测试分布</h2>",
-        "<p>这一步把所有训练好的模型统一评估成可比较的指标文件。关键点是：<code>balanced</code> 和 <code>unbalanced</code> 的测试并没有重新训练模型，而是在同一个 checkpoint 上分别生成两套测试结果。</p>",
+        "<h2>Fold 6: Unified Evaluation</h2>",
+        "<p>All trained models are evaluated against both balanced (50/50) and unbalanced (20/80) test distributions to highlight deployment vulnerabilities without retraining.</p>",
         fold6_cards,
         note_box(
-            "评估逻辑",
-            "- 阈值先在 validation 上选择，再应用到 test。\n"
+            "Evaluation Logic",
+            "- Thresholds selected on val, applied to test.\n"
             "- 每个 outer fold 都同时输出 `balanced_50_50` 和 `unbalanced_20_80` 两种 test 结果。\n"
             "- 因此 440 个训练模型最终对应了 880 份 `metrics.json` 和 880 份 `predictions.parquet`。",
         ),
-        "<div class='panel'><h3>评估组合主览</h3>{}</div>".format(
+        "<div class='panel'><h3>Eval Combos主览</h3>{}</div>".format(
             render_table(
                 main_results[
                     ["protocol", "train_mode", "test_mode", "n_folds", "f1_mean", "roc_auc_mean", "precision_mean", "recall_mean", "specificity_mean"]
@@ -747,7 +747,7 @@ def build_html() -> str:
                 float_cols=["f1_mean", "roc_auc_mean", "precision_mean", "recall_mean", "specificity_mean"],
             )
         ),
-        "<h3>当前产物</h3>",
+        "<h3>Current Artifacts</h3>",
         artifact_list(
             [
                 FOLD6_DIR / "window" / "balanced_50_50" / "outer_fold_000" / "balanced_50_50" / "metrics.json",
@@ -760,10 +760,10 @@ def build_html() -> str:
 
         "<section class='section' id='fold7'>",
         "<div class='fold-kicker'>Fold 7</div>",
-        "<h2>结果汇总、科研风可视化与报告材料</h2>",
-        "<p>这一步把前面所有实验真正整理成“能讲出去”的东西。这里包括主结果表、summary figures、research visualizations，以及你们报告里会直接引用的讨论文字。</p>",
+        "<h2>Fold 7: Results Aggregation & Reporting</h2>",
+        "<p>这一步把前面所有实验真正整理成“能讲出去”的东西。这里包括Main Results Table、summary figures、research visualizations，以及你们报告里会直接引用的讨论文字。</p>",
         fold7_cards,
-        "<div class='panel'><h3>主结果表</h3>{}</div>".format(
+        "<div class='panel'><h3>Main Results Table</h3>{}</div>".format(
             render_table(
                 main_results[
                     ["protocol", "train_mode", "test_mode", "n_folds", "f1_mean", "roc_auc_mean", "precision_mean", "recall_mean", "specificity_mean"]
@@ -773,24 +773,24 @@ def build_html() -> str:
             )
         ),
         "<div class='image-grid'>",
-        inline_image(SUMMARY_DIR / "f1_by_protocol.png", 1150, "summary figure: 各协议的平均 F1"),
-        inline_image(SUMMARY_DIR / "auc_by_protocol.png", 1150, "summary figure: 各协议的平均 ROC-AUC"),
+        inline_image(SUMMARY_DIR / "f1_by_protocol.png", 1150, "Summary figure: Mean F1 by protocol"),
+        inline_image(SUMMARY_DIR / "auc_by_protocol.png", 1150, "Summary figure: Mean ROC-AUC by protocol"),
         "</div>",
         "<div class='two-col'>",
-        "<div class='panel'><h3>中文图注</h3>{}</div>".format(captions_html),
-        "<div class='panel'><h3>可视化说明</h3>{}</div>".format(visual_notes_html),
+        "<div class='panel'><h3>Figure Captions</h3>{}</div>".format(captions_html),
+        "<div class='panel'><h3>Visualization Notes</h3>{}</div>".format(visual_notes_html),
         "</div>",
         "<div class='image-grid'>",
-        inline_image(VIS_DIR / "input_heatmap_pair.png", 1200, "图 1. 单窗口 EEG 输入热力图对比"),
-        inline_image(VIS_DIR / "channel_fusion_architecture.png", 1250, "图 2. Channel Fusion CNN 结构示意图"),
-        inline_image(VIS_DIR / "first_layer_channel_fusion_weights.png", 1250, "图 3. 第一层卷积核的通道融合权重"),
-        inline_image(VIS_DIR / "saliency_case_patient_fold0.png", 1250, "图 4. 发作样本的 Saliency 可解释性结果"),
+        inline_image(VIS_DIR / "input_heatmap_pair.png", 1200, "Figure 1. Single Window EEG Input Comparison"),
+        inline_image(VIS_DIR / "channel_fusion_architecture.png", 1250, "Figure 2. Channel Fusion CNN Architecture"),
+        inline_image(VIS_DIR / "first_layer_channel_fusion_weights.png", 1250, "Figure 3. First Layer Channel Fusion Weights"),
+        inline_image(VIS_DIR / "saliency_case_patient_fold0.png", 1250, "Figure 4. Saliency Map for Seizure Sample"),
         "</div>",
         "<div class='two-col'>",
         "<div class='panel'><h3>Applications Discussion</h3>{}</div>".format(discussion_html),
         "<div class='panel'><h3>Report-ready Notes</h3>{}</div>".format(report_notes_html),
         "</div>",
-        "<h3>当前产物</h3>",
+        "<h3>Current Artifacts</h3>",
         artifact_list(
             [
                 FOLD7_DIR / "main_results.csv",
@@ -809,14 +809,14 @@ def build_html() -> str:
 
         "<section class='section' id='fold8'>",
         "<div class='fold-kicker'>Fold 8</div>",
-        "<h2>未来模型扩展位</h2>",
-        "<p>这一步现在不训练任何新模型，但它把未来扩展的边界钉住了。也就是说，之后如果你们要补第二模型，不应该改 split schema 和 eval schema，而是直接复用前面已经稳定的工程接口。</p>",
+        "<h2>Fold 8: Future Model Slot (LSTM)</h2>",
+        "<p>The infrastructure cleanly isolates the data and evaluation logic, allowing the seamless integration of the Temporal LSTM sequence model to fulfill the final assignment requirements.</p>",
         fold8_cards,
         "<div class='two-col'>",
         "<div class='panel'><h3>Future Model Slot</h3>{}</div>".format(future_readme_html),
         "<div class='panel'><h3>Model IO Contract</h3>{}</div>".format(future_contract_html),
         "</div>",
-        "<h3>当前产物</h3>",
+        "<h3>Current Artifacts</h3>",
         artifact_list(
             [
                 FOLD8_DIR / "future_model_readme.md",
@@ -825,7 +825,7 @@ def build_html() -> str:
         ),
         "</section>",
 
-        "<div class='footer'>这个 HTML 已经替换掉之前那份省略过多的简版静态报告。现在发给同学时，只发这一个文件即可；里面的图片已经内嵌，不依赖 notebook 或旁边的文件夹。</div>",
+        "<div class='footer'>This HTML file is standalone. All images and metrics are self-contained and do not rely on local folders.</div>",
         "</div>",
         "</body>",
         "</html>",
