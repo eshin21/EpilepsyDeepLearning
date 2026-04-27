@@ -27,6 +27,15 @@ class FoldPools:
     metadata: dict[str, object]
 
 
+def _preprocess_master_index(master_index: pd.DataFrame) -> pd.DataFrame:
+    """Merges chb21 into chb01 to prevent patient-level data leakage."""
+    df = master_index.copy()
+    chb21_mask = df["patient_id"] == "chb21"
+    df.loc[chb21_mask, "global_interval"] += 100  # Shift interval IDs to avoid collisions
+    df.loc[chb21_mask, "patient_id"] = "chb01"
+    return df
+
+
 def build_split_artifacts(master_index: pd.DataFrame, force: bool = False) -> dict[str, Path]:
     ensure_dir(FOLD3_DIR)
     window_path = FOLD3_DIR / "window_manifest.parquet"
@@ -37,7 +46,7 @@ def build_split_artifacts(master_index: pd.DataFrame, force: bool = False) -> di
     report_path = FOLD3_DIR / "split_qc_report.md"
     overlap_path = FOLD3_DIR / "window_overlap_summary.csv"
 
-    if all(path.exists() for path in [window_path, seizure_path, patient_path, normal_path, interval_path, report_path, overlap_path]) and not force:
+    if all(path.exists() for path in[window_path, seizure_path, patient_path, normal_path, interval_path, report_path, overlap_path]) and not force:
         return {
             "window": window_path,
             "seizure": seizure_path,
@@ -48,11 +57,14 @@ def build_split_artifacts(master_index: pd.DataFrame, force: bool = False) -> di
             "overlap": overlap_path,
         }
 
-    window_assignments = _build_window_assignments(master_index)
-    seizure_assignments = _build_seizure_assignments(master_index)
-    patient_assignments = _build_patient_assignments(master_index)
-    normal_only = normal_only_recordings(master_index)
-    normal_interval_only = normal_only_intervals(master_index)
+    # APPLY PATIENT MERGE FIX
+    df = _preprocess_master_index(master_index)
+
+    window_assignments = _build_window_assignments(df)
+    seizure_assignments = _build_seizure_assignments(df)
+    patient_assignments = _build_patient_assignments(df)
+    normal_only = normal_only_recordings(df)
+    normal_interval_only = normal_only_intervals(df)
 
     window_assignments.to_parquet(window_path, index=False)
     seizure_assignments.to_parquet(seizure_path, index=False)
@@ -60,10 +72,10 @@ def build_split_artifacts(master_index: pd.DataFrame, force: bool = False) -> di
     normal_only.to_parquet(normal_path, index=False)
     normal_interval_only.to_parquet(interval_path, index=False)
 
-    overlap_rows = []
+    overlap_rows =[]
     for fold_id in sorted(window_assignments["outer_fold_id"].unique().tolist()):
-        test_rows = master_index.loc[window_assignments["outer_fold_id"] == fold_id]
-        train_rows = master_index.loc[window_assignments["outer_fold_id"] != fold_id]
+        test_rows = df.loc[window_assignments["outer_fold_id"] == fold_id]
+        train_rows = df.loc[window_assignments["outer_fold_id"] != fold_id]
         overlap_rows.append(
             {
                 "outer_fold_id": int(fold_id),
@@ -92,7 +104,7 @@ def build_split_artifacts(master_index: pd.DataFrame, force: bool = False) -> di
     overlap_df = pd.DataFrame(overlap_rows)
     overlap_df.to_csv(overlap_path, index=False)
 
-    report_lines = [
+    report_lines =[
         "# Split QC Report",
         "",
         f"- Window folds: `{window_assignments['outer_fold_id'].nunique()}`",
@@ -103,10 +115,9 @@ def build_split_artifacts(master_index: pd.DataFrame, force: bool = False) -> di
         "",
         "## Notes",
         "",
-        "- Window folds intentionally allow patient and event overlap between train and test.",
+        "- Window folds exclude +/- 4 adjacent overlapping seizure windows to prevent 80% overlap leakage.",
         "- Seizure folds are keyed by `(patient_id, global_interval)` and prefer normal-only recordings for negatives.",
-        "- If a patient has no normal-only recording, the code falls back to normal-only intervals inside that patient.",
-        "- Patient folds are leave-one-subject-out.",
+        "- Patient folds merge chb21 and chb01 to prevent unseen-patient leakage.",
     ]
     report_path.write_text("\n".join(report_lines) + "\n", encoding="utf-8")
 
@@ -128,16 +139,17 @@ def resolve_fold_pools(
     seed: int = SEED,
     val_fraction: float = VAL_FRACTION,
 ) -> FoldPools:
+    df = _preprocess_master_index(master_index)
     split_paths = build_split_artifacts(master_index, force=False)
     if protocol == "window":
         assignments = pd.read_parquet(split_paths["window"])
-        return _resolve_window_fold(master_index, assignments, outer_fold_id, seed=seed, val_fraction=val_fraction)
+        return _resolve_window_fold(df, assignments, outer_fold_id, seed=seed, val_fraction=val_fraction)
     if protocol == "seizure":
         assignments = pd.read_parquet(split_paths["seizure"])
         normal_only = pd.read_parquet(split_paths["normal_only_recordings"])
         normal_intervals = pd.read_parquet(split_paths["normal_only_intervals"])
         return _resolve_seizure_fold(
-            master_index,
+            df,
             assignments,
             normal_only,
             normal_intervals,
@@ -147,7 +159,7 @@ def resolve_fold_pools(
         )
     if protocol == "patient":
         assignments = pd.read_parquet(split_paths["patient"])
-        return _resolve_patient_fold(master_index, assignments, outer_fold_id, seed=seed, val_fraction=val_fraction)
+        return _resolve_patient_fold(df, assignments, outer_fold_id, seed=seed, val_fraction=val_fraction)
     raise ValueError(f"Unsupported protocol: {protocol}")
 
 
@@ -198,19 +210,19 @@ def list_outer_fold_ids(master_index: pd.DataFrame, protocol: str) -> list[int]:
     return sorted(assignments["outer_fold_id"].unique().tolist())
 
 
-def _build_window_assignments(master_index: pd.DataFrame) -> pd.DataFrame:
-    assignments = pd.DataFrame({"row_id": master_index["row_id"].to_numpy(), "outer_fold_id": -1})
+def _build_window_assignments(df: pd.DataFrame) -> pd.DataFrame:
+    assignments = pd.DataFrame({"row_id": df["row_id"].to_numpy(), "outer_fold_id": -1})
     splitter = StratifiedKFold(n_splits=WINDOW_FOLDS, shuffle=True, random_state=SEED)
-    labels = master_index["class_label"].to_numpy()
-    for fold_id, (_, test_idx) in enumerate(splitter.split(master_index["row_id"].to_numpy(), labels)):
+    labels = df["class_label"].to_numpy()
+    for fold_id, (_, test_idx) in enumerate(splitter.split(df["row_id"].to_numpy(), labels)):
         assignments.loc[test_idx, "outer_fold_id"] = fold_id
     assignments["group_id"] = assignments["row_id"].astype(str)
     assignments["protocol"] = "window"
     return assignments
 
 
-def _build_seizure_assignments(master_index: pd.DataFrame) -> pd.DataFrame:
-    seizure_rows = master_index.loc[master_index["class_label"] == 1, ["patient_id", "global_interval"]].drop_duplicates()
+def _build_seizure_assignments(df: pd.DataFrame) -> pd.DataFrame:
+    seizure_rows = df.loc[df["class_label"] == 1, ["patient_id", "global_interval"]].drop_duplicates()
     seizure_rows = seizure_rows.sort_values(["patient_id", "global_interval"]).reset_index(drop=True)
     seizure_rows["outer_fold_id"] = np.arange(len(seizure_rows), dtype=np.int64)
     seizure_rows["group_id"] = seizure_rows["patient_id"] + "__" + seizure_rows["global_interval"].astype(str)
@@ -218,9 +230,9 @@ def _build_seizure_assignments(master_index: pd.DataFrame) -> pd.DataFrame:
     return seizure_rows
 
 
-def _build_patient_assignments(master_index: pd.DataFrame) -> pd.DataFrame:
+def _build_patient_assignments(df: pd.DataFrame) -> pd.DataFrame:
     patient_rows = (
-        master_index[["patient_id"]]
+        df[["patient_id"]]
         .drop_duplicates()
         .sort_values("patient_id")
         .reset_index(drop=True)
@@ -232,23 +244,43 @@ def _build_patient_assignments(master_index: pd.DataFrame) -> pd.DataFrame:
 
 
 def _resolve_window_fold(
-    master_index: pd.DataFrame,
+    df: pd.DataFrame,
     assignments: pd.DataFrame,
     outer_fold_id: int,
     seed: int,
     val_fraction: float,
 ) -> FoldPools:
-    test_ids = assignments.loc[assignments["outer_fold_id"] == outer_fold_id, "row_id"]
-    test_pool = master_index.loc[master_index["row_id"].isin(test_ids)].copy()
-    train_val = master_index.loc[~master_index["row_id"].isin(test_ids)].copy()
+    test_ids = assignments.loc[assignments["outer_fold_id"] == outer_fold_id, "row_id"].values
+    test_pool = df.loc[df["row_id"].isin(test_ids)].copy()
+    
+    # EXACT FIX: EXCLUDE +/- 4 LEAKAGE NEIGHBORS **ONLY FOR SEIZURE WINDOWS**
+    test_pos_ids = test_pool.loc[test_pool["class_label"] == 1, "row_id"].values
+    exclude_ids = set(test_ids)
+    for offset in range(1, 5):
+        exclude_ids.update(test_pos_ids - offset)
+        exclude_ids.update(test_pos_ids + offset)
+        
+    train_val = df.loc[~df["row_id"].isin(exclude_ids)].copy()
+    
     splitter = StratifiedShuffleSplit(n_splits=1, test_size=val_fraction, random_state=seed + outer_fold_id)
     indices = next(splitter.split(train_val["row_id"].to_numpy(), train_val["class_label"].to_numpy()))
     train_idx, val_idx = indices
-    train_pool = train_val.iloc[train_idx].copy().reset_index(drop=True)
-    val_pool = train_val.iloc[val_idx].copy().reset_index(drop=True)
+    
+    train_pool_temp = train_val.iloc[train_idx].copy()
+    val_pool = train_val.iloc[val_idx].copy()
+    
+    # ALSO PREVENT LEAKAGE BETWEEN VAL AND TRAIN (ONLY FOR SEIZURE WINDOWS)
+    val_pos_ids = val_pool.loc[val_pool["class_label"] == 1, "row_id"].values
+    val_exclude_ids = set(val_pool["row_id"].values)
+    for offset in range(1, 5):
+        val_exclude_ids.update(val_pos_ids - offset)
+        val_exclude_ids.update(val_pos_ids + offset)
+        
+    train_pool = train_pool_temp.loc[~train_pool_temp["row_id"].isin(val_exclude_ids)].copy()
+
     return FoldPools(
-        train_pool=train_pool,
-        val_pool=val_pool,
+        train_pool=train_pool.reset_index(drop=True),
+        val_pool=val_pool.reset_index(drop=True),
         test_pool=test_pool.reset_index(drop=True),
         metadata={
             "protocol": "window",
@@ -259,7 +291,7 @@ def _resolve_window_fold(
 
 
 def _resolve_seizure_fold(
-    master_index: pd.DataFrame,
+    df: pd.DataFrame,
     assignments: pd.DataFrame,
     normal_only: pd.DataFrame,
     normal_intervals: pd.DataFrame,
@@ -271,9 +303,9 @@ def _resolve_seizure_fold(
     test_patient = held_out["patient_id"]
     test_interval = int(held_out["global_interval"])
 
-    event_mask = (master_index["patient_id"] == test_patient) & (master_index["global_interval"] == test_interval)
-    test_pos_pool = master_index.loc[event_mask & (master_index["class_label"] == 1)].copy()
-    test_neg_pool = _select_seizure_negative_pool(master_index, normal_only, normal_intervals, test_patient, exclude_intervals={test_interval})
+    event_mask = (df["patient_id"] == test_patient) & (df["global_interval"] == test_interval)
+    test_pos_pool = df.loc[event_mask & (df["class_label"] == 1)].copy()
+    test_neg_pool = _select_seizure_negative_pool(df, normal_only, normal_intervals, test_patient, exclude_intervals={test_interval})
 
     remaining_events = assignments.loc[(assignments["outer_fold_id"] != outer_fold_id) & (assignments["patient_id"] != test_patient)].copy()
     n_val_events = max(1, int(round(len(remaining_events) * val_fraction)))
@@ -282,20 +314,20 @@ def _resolve_seizure_fold(
     val_events = remaining_events.loc[selected_val_event_idx].copy()
     val_patients = sorted(val_events["patient_id"].unique().tolist())
 
-    val_neg_parts = []
+    val_neg_parts =[]
     for patient_id in val_patients:
         patient_excluded = set(val_events.loc[val_events["patient_id"] == patient_id, "global_interval"].tolist())
         val_neg_parts.append(
             _select_seizure_negative_pool(
-                master_index,
+                df,
                 normal_only,
                 normal_intervals,
                 patient_id,
                 exclude_intervals=patient_excluded,
             )
         )
-    val_neg_pool = pd.concat(val_neg_parts, ignore_index=True) if val_neg_parts else master_index.iloc[0:0].copy()
-    val_pos_pool = master_index.merge(
+    val_neg_pool = pd.concat(val_neg_parts, ignore_index=True) if val_neg_parts else df.iloc[0:0].copy()
+    val_pos_pool = df.merge(
         val_events[["patient_id", "global_interval"]],
         on=["patient_id", "global_interval"],
         how="inner",
@@ -303,7 +335,7 @@ def _resolve_seizure_fold(
     val_pos_pool = val_pos_pool.loc[val_pos_pool["class_label"] == 1].copy()
 
     excluded_row_ids = set(test_pos_pool["row_id"]).union(test_neg_pool["row_id"]).union(val_pos_pool["row_id"]).union(val_neg_pool["row_id"])
-    train_pool = master_index.loc[~master_index["row_id"].isin(excluded_row_ids) & ~event_mask].copy().reset_index(drop=True)
+    train_pool = df.loc[~df["row_id"].isin(excluded_row_ids) & ~event_mask].copy().reset_index(drop=True)
     val_pool = pd.concat([val_pos_pool, val_neg_pool], ignore_index=True).drop_duplicates("row_id").reset_index(drop=True)
     test_pool = pd.concat([test_pos_pool, test_neg_pool], ignore_index=True).drop_duplicates("row_id").reset_index(drop=True)
 
@@ -322,40 +354,40 @@ def _resolve_seizure_fold(
 
 
 def _select_seizure_negative_pool(
-    master_index: pd.DataFrame,
+    df: pd.DataFrame,
     normal_only: pd.DataFrame,
     normal_intervals: pd.DataFrame,
     patient_id: str,
     exclude_intervals: set[int] | None = None,
 ) -> pd.DataFrame:
     exclude_intervals = exclude_intervals or set()
-    recording_pool = master_index.loc[
-        (master_index["patient_id"] == patient_id)
-        & (master_index["class_label"] == 0)
-        & (master_index["filename"].isin(normal_only.loc[normal_only["patient_id"] == patient_id, "filename"]))
-        & (~master_index["global_interval"].isin(list(exclude_intervals)))
+    recording_pool = df.loc[
+        (df["patient_id"] == patient_id)
+        & (df["class_label"] == 0)
+        & (df["filename"].isin(normal_only.loc[normal_only["patient_id"] == patient_id, "filename"]))
+        & (~df["global_interval"].isin(list(exclude_intervals)))
     ].copy()
     if not recording_pool.empty:
         return recording_pool
 
-    interval_pool = master_index.loc[
-        (master_index["patient_id"] == patient_id)
-        & (master_index["class_label"] == 0)
-        & (master_index["global_interval"].isin(normal_intervals.loc[normal_intervals["patient_id"] == patient_id, "global_interval"]))
-        & (~master_index["global_interval"].isin(list(exclude_intervals)))
+    interval_pool = df.loc[
+        (df["patient_id"] == patient_id)
+        & (df["class_label"] == 0)
+        & (df["global_interval"].isin(normal_intervals.loc[normal_intervals["patient_id"] == patient_id, "global_interval"]))
+        & (~df["global_interval"].isin(list(exclude_intervals)))
     ].copy()
     if not interval_pool.empty:
         return interval_pool
 
-    return master_index.loc[
-        (master_index["patient_id"] == patient_id)
-        & (master_index["class_label"] == 0)
-        & (~master_index["global_interval"].isin(list(exclude_intervals)))
+    return df.loc[
+        (df["patient_id"] == patient_id)
+        & (df["class_label"] == 0)
+        & (~df["global_interval"].isin(list(exclude_intervals)))
     ].copy()
 
 
 def _resolve_patient_fold(
-    master_index: pd.DataFrame,
+    df: pd.DataFrame,
     assignments: pd.DataFrame,
     outer_fold_id: int,
     seed: int,
@@ -363,13 +395,13 @@ def _resolve_patient_fold(
 ) -> FoldPools:
     held_out = assignments.loc[assignments["outer_fold_id"] == outer_fold_id].iloc[0]
     test_patient = held_out["patient_id"]
-    test_pool = master_index.loc[master_index["patient_id"] == test_patient].copy()
+    test_pool = df.loc[df["patient_id"] == test_patient].copy()
     remaining_patients = assignments.loc[assignments["outer_fold_id"] != outer_fold_id, "patient_id"].tolist()
     n_val_patients = max(1, int(round(len(remaining_patients) * val_fraction)))
     rng = np.random.default_rng(seed + outer_fold_id)
     val_patients = sorted(rng.choice(np.array(remaining_patients), size=min(n_val_patients, len(remaining_patients)), replace=False).tolist())
-    val_pool = master_index.loc[master_index["patient_id"].isin(val_patients)].copy().reset_index(drop=True)
-    train_pool = master_index.loc[~master_index["patient_id"].isin(val_patients + [test_patient])].copy().reset_index(drop=True)
+    val_pool = df.loc[df["patient_id"].isin(val_patients)].copy().reset_index(drop=True)
+    train_pool = df.loc[~df["patient_id"].isin(val_patients + [test_patient])].copy().reset_index(drop=True)
     return FoldPools(
         train_pool=train_pool,
         val_pool=val_pool,
