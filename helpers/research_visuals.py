@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-os.environ.setdefault("MPLCONFIGDIR", "/hhome/ricse03/Deep_Learning_Group 3/homework_wenqi/.mplconfig")
+os.environ.setdefault("MPLCONFIGDIR", "/hhome/ricse03/Deep_Learning_Group 3/homework_fixed/.mplconfig")
 
 import matplotlib
 import numpy as np
@@ -218,7 +218,7 @@ def save_first_layer_weight_heatmap(checkpoint_path: Path, output_path: Path) ->
     ensure_dir(output_path.parent)
 
     model, _, _, _ = load_trained_model(checkpoint_path, device="cpu")
-    first_conv = model.features[0]
+    first_conv = model.encoder.features[0]
     weights = first_conv.weight.detach().cpu().numpy()
     fusion_strength = np.mean(np.abs(weights), axis=2)
     channel_mean = fusion_strength.mean(axis=0)
